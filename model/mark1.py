@@ -4,8 +4,11 @@ import seaborn as sns
 import matplotlib.style as mplstyle
 mplstyle.use('fast')
 import matplotlib.pyplot as plt
+import os
 
 from datetime import datetime
+import fire
+from typing import Optional
 
 
 M = 10 # number of goals
@@ -31,19 +34,35 @@ class World:
                 this.neighbors[_idy] = 1 if this.distances[_idy] <= this.sensingrange else 0
 
     def add_entity(self, e):
-        assert e.id not in self.entites.keys()
-        self.entites[e.id] = e
+        # Ensure unique IDs and correct attribute name
+        if e.id in self.entities:
+            raise ValueError(f"Entity with id {e.id} already exists")
+        self.entities[e.id] = e
 
     def plot(self):
-        x = [e.loc[0] for e in self.entities.values()]
-        y = [e.loc[1] for e in self.entities.values()]
-        
-        colors = ['red' if e.type == 'goal' else 'green' for e in self.entities.values()]
-        markers = ['o' if e.type == 'goal' else '+' for e in self.entities.values()]
+        # Separate robots and goals for clearer plotting
+        goals = [e for e in self.entities.values() if e.type == 'goal']
+        robots = [e for e in self.entities.values() if e.type == 'robot']
 
-        sns.scatterplot(x=x, y=y, color=colors)
+        if goals:
+            gx = [e.loc[0] for e in goals]
+            gy = [e.loc[1] for e in goals]
+            plt.scatter(gx, gy, c='red', marker='o', label='goal')
+
+        if robots:
+            rx = [e.loc[0] for e in robots]
+            ry = [e.loc[1] for e in robots]
+            plt.scatter(rx, ry, c='green', marker='+', label='robot')
+
+        plt.legend()
+        plt.title('World entities')
+        plt.xlabel('x')
+        plt.ylabel('y')
+
+        os.makedirs('plots', exist_ok=True)
         stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         plt.savefig(f"plots/{stamp}.png")
+        plt.close()
 
 
 class Entity:
@@ -55,15 +74,29 @@ class Entity:
         self.distances = {}
         self.neighbors = {}
 
+def main(plot: bool = False, m: int = M, n: int = N, seed: Optional[int] = None):
+    """Run a simple world simulation.
 
-if __name__ == "__main__":
-    goals = [ Entity(ID=_i, loc=np.random.rand(2)) for _i in range(M) ]
-    robots = [ Entity(ID=_i+100, loc=np.random.rand(2), etype='goal') for _i in range(N) ]
+    Args:
+        plot: If True, save a scatter plot to `plots/`.
+        m: Number of goals to create.
+        n: Number of robots to create.
+        seed: Optional RNG seed for reproducibility.
+    """
+    if seed is not None:
+        np.random.seed(seed)
+
+    assert m == n, "For now, the demo assumes m == n"
+
+    goals = [Entity(ID=_i, loc=np.random.rand(2), etype='goal') for _i in range(m)]
+    robots = [Entity(ID=_i + 100, loc=np.random.rand(2), etype='robot') for _i in range(n)]
 
     world = World(goals + robots)
     world.makedistances()
-    world.plot()
+    if plot:
+        world.plot()
 
 
-
+if __name__ == "__main__":
+    fire.Fire(main)
 
