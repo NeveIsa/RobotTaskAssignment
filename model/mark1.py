@@ -2,7 +2,8 @@ import numpy as np
 
 import seaborn as sns
 import matplotlib.style as mplstyle
-mplstyle.use('fast')
+
+mplstyle.use("fast")
 import matplotlib.pyplot as plt
 import os
 
@@ -11,27 +12,28 @@ import fire
 from typing import Optional
 
 
-M = 10 # number of goals
-N = 10 # number of robots
+M = 10  # number of goals
+N = 10  # number of robots
 
 # maybe modded
-assert M==N
+assert M == N
 
 # preference matrix
-P = np.random.rand(M,N)
+P = np.random.rand(M, N)
 
 
 class World:
     def __init__(self, entities: list):
         self.entities = {e.id: e for e in entities}
-        
 
     def makedistances(self, ids=None):
         entities = self.entities
-        for _idx,this in entities.items():
+        for _idx, this in entities.items():
             for _idy, that in entities.items():
                 this.distances[_idy] = np.linalg.norm(this.loc - that.loc)
-                this.neighbors[_idy] = 1 if this.distances[_idy] <= this.sensingrange else 0
+                this.neighbors[_idy] = (
+                    1 if this.distances[_idy] <= this.sensingrange else 0
+                )
 
     def add_entity(self, e):
         # Ensure unique IDs and correct attribute name
@@ -41,38 +43,39 @@ class World:
 
     def plot(self):
         # Separate robots and goals for clearer plotting
-        goals = [e for e in self.entities.values() if e.type == 'goal']
-        robots = [e for e in self.entities.values() if e.type == 'robot']
+        goals = [e for e in self.entities.values() if e.type == "goal"]
+        robots = [e for e in self.entities.values() if e.type == "robot"]
 
         if goals:
             gx = [e.loc[0] for e in goals]
             gy = [e.loc[1] for e in goals]
-            plt.scatter(gx, gy, c='red', marker='o', label='goal')
+            plt.scatter(gx, gy, c="red", marker="o", label="goal")
 
         if robots:
             rx = [e.loc[0] for e in robots]
             ry = [e.loc[1] for e in robots]
-            plt.scatter(rx, ry, c='green', marker='+', label='robot')
+            plt.scatter(rx, ry, c="green", marker="+", label="robot")
 
         plt.legend()
-        plt.title('World entities')
-        plt.xlabel('x')
-        plt.ylabel('y')
+        plt.title("World entities")
+        plt.xlabel("x")
+        plt.ylabel("y")
 
-        os.makedirs('plots', exist_ok=True)
+        os.makedirs("plots", exist_ok=True)
         stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         plt.savefig(f"plots/{stamp}.png")
         plt.close()
 
 
 class Entity:
-    def __init__(self, ID, loc=(0,0), etype="robot", sensingrange=10):
+    def __init__(self, ID, loc=(0, 0), etype="robot", sensingrange=10):
         self.id = ID
         self.loc = np.array(loc)
         self.type = etype
         self.sensingrange = sensingrange
         self.distances = {}
         self.neighbors = {}
+
 
 def main(plot: bool = False, m: int = M, n: int = N, seed: Optional[int] = None):
     """Run a simple world simulation.
@@ -88,8 +91,10 @@ def main(plot: bool = False, m: int = M, n: int = N, seed: Optional[int] = None)
 
     assert m == n, "For now, the demo assumes m == n"
 
-    goals = [Entity(ID=_i, loc=np.random.rand(2), etype='goal') for _i in range(m)]
-    robots = [Entity(ID=_i + 100, loc=np.random.rand(2), etype='robot') for _i in range(n)]
+    goals = [Entity(ID=_i, loc=np.random.rand(2), etype="goal") for _i in range(m)]
+    robots = [
+        Entity(ID=_i + 100, loc=np.random.rand(2), etype="robot") for _i in range(n)
+    ]
 
     world = World(goals + robots)
     world.makedistances()
@@ -99,4 +104,3 @@ def main(plot: bool = False, m: int = M, n: int = N, seed: Optional[int] = None)
 
 if __name__ == "__main__":
     fire.Fire(main)
-
