@@ -11,6 +11,7 @@ from scipy.optimize import linear_sum_assignment, linprog
 from typing import Tuple, Optional
 import time
 import fire
+import os
 
 
 def solve_assignment(cost: np.ndarray) -> Tuple[np.ndarray, np.ndarray, float]:
@@ -118,15 +119,28 @@ def lp_solve_assignment(cost: np.ndarray) -> Tuple[np.ndarray, np.ndarray, float
     return x, row_ind, col_ind, total_cost
 
 
-def main(n: int = 4, seed: Optional[int] = 42) -> None:
-    """Run both Hungarian and LP solvers on an n x n random cost matrix.
+def main(
+    n: int = 4,
+    seed: Optional[int] = 0,
+    cfile: str = "",
+) -> None:
+    """Run both Hungarian and LP solvers on a cost matrix.
 
     Args:
-        n: Size of the square cost matrix.
-        seed: Optional RNG seed for reproducibility.
+        n: Size of the square cost matrix when generating randomly.
+        seed: RNG seed; if 0, load matrix from `cfile`.
+        cfile: Path to `.npy` file containing a 2D cost matrix.
     """
-    rng = np.random.default_rng(seed)
-    cost_matrix = rng.random((n, n))
+    if seed == 0:
+        if not os.path.isfile(cfile):
+            print("Pass --cfile pointing to a .npy cost matrix when --seed 0")
+            return
+        cost_matrix = np.load(cfile)
+        if not isinstance(cost_matrix, np.ndarray) or cost_matrix.ndim != 2:
+            raise ValueError("Loaded cost matrix must be a 2D numpy array")
+    else:
+        rng = np.random.default_rng(seed)
+        cost_matrix = rng.random((n, n))
 
     t0 = time.perf_counter()
     r_h, c_h, tc_h = solve_assignment(cost_matrix)
@@ -136,6 +150,7 @@ def main(n: int = 4, seed: Optional[int] = 42) -> None:
     x, r_l, c_l, tc_l = lp_solve_assignment(cost_matrix)
     t_l = time.perf_counter() - t0
 
+    np.set_printoptions(precision=3, suppress=True)
     print("cost matrix:\n", np.round(cost_matrix, 3))
     print(
         "Hungarian -> rows:", r_h,
